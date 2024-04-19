@@ -6,6 +6,7 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     tools:context=".ChatActivity"
     android:background="#DCD9D9">
 
@@ -34,9 +35,11 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="DNS" />
+            android:inputType="textCapWords"
+            android:text="" />
 
         <ImageView
+            android:id="@+id/chat_iv_bell"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:src="@android:drawable/ic_popup_reminder"
@@ -75,6 +78,7 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
+            android:inputType="textEmailAddress"
             android:text="Hello" />
 
         <ImageButton

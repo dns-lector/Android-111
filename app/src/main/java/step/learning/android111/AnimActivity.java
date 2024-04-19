@@ -1,9 +1,12 @@
 package step.learning.android111;
 
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -50,6 +53,20 @@ public class AnimActivity extends AppCompatActivity {
         findViewById(R.id.anim_scale_view).setOnClickListener(this::scale1Clicked);
         findViewById(R.id.anim_scale2_view).setOnClickListener(this::scale2Clicked);
         findViewById(R.id.anim_translate_view).setOnClickListener(this::translateClicked);
+
+        SQLiteDatabase db = openOrCreateDatabase("cnt_db",MODE_PRIVATE,null);
+        db.execSQL("CREATE TABLE IF NOT EXISTS anim_stat(id ROWID,dtt datetime)");
+        db.execSQL("INSERT INTO anim_stat(dtt) VALUES(CURRENT_TIMESTAMP)");
+        Cursor resultSet = db.rawQuery("SELECT * FROM anim_stat",null);
+        String str = "";
+        boolean hasData = resultSet.moveToFirst();
+        while (hasData) {
+            str += resultSet.getString(1) + "\n";
+            hasData = resultSet.moveToNext();
+        }
+        Toast.makeText(this, str, Toast.LENGTH_SHORT).show();
+        resultSet.close();
+        db.close();
     }
 
     private void alphaClicked(View view) {

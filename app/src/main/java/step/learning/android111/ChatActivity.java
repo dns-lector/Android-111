@@ -1,13 +1,21 @@
 package step.learning.android111;
 
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -53,17 +61,19 @@ public class ChatActivity extends AppCompatActivity {
     private final Handler handler = new Handler();
     private MediaPlayer incomingMessage;
     private String author = null;
+    private Animation bellAnimation;
+    private ImageView ivBell;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_chat);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+        // ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+        //     Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+        //     v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+        //     return insets;
+        // });
         // new Thread(this::loadChatMessages).start();
         handler.post(this::timer);
         messagesContainer = findViewById( R.id.chat_messages_container );
@@ -71,10 +81,40 @@ public class ChatActivity extends AppCompatActivity {
         findViewById(R.id.chat_btn_send).setOnClickListener( this::sendMessageClick );
         etAuthor = findViewById( R.id.chat_et_name );
         etMessage = findViewById( R.id.chat_et_message );
+        ivBell = findViewById(R.id.chat_iv_bell); ivBell.setOnClickListener(this::bellClick);
+        bellAnimation = AnimationUtils.loadAnimation(this, R.anim.chat_bell);
         bgOwn = AppCompatResources.getDrawable(getApplicationContext(), R.drawable.chat_bg_own);
         bgOther = AppCompatResources.getDrawable(getApplicationContext(), R.drawable.chat_bg_other);
         incomingMessage = MediaPlayer.create(this, R.raw.income);
         // incomingMessage.start();
+        // задача: прибирати екранну клавіатуру при кліку поза полем введення (на scrollView)
+        messagesScroller.setOnTouchListener( (v, event) -> {
+            if(event.getAction() == MotionEvent.ACTION_UP) {
+                v.performClick();
+            }
+            else {
+                // Приховати клавіатуру, якщо вона є
+                hideSoftwareKeyboard();
+            }
+            return true;
+        });
+        tryRestoreAuthor();
+    }
+    private void hideSoftwareKeyboard() {
+        // Знаходимо елемент, що має фокус введення
+        View focusedView = getCurrentFocus();
+        // якщо такий елемент є
+        if(focusedView != null) {
+            // Запитуємо систему щодо управління клавіатурою
+            InputMethodManager imm = (InputMethodManager)
+                    getSystemService(Context.INPUT_METHOD_SERVICE);
+            // даємо команду приховати клавіатуру для focusedView
+            imm.hideSoftInputFromWindow(focusedView.getWindowToken(), 0);
+            focusedView.clearFocus();
+        }
+    }
+    private void bellClick(View view) {
+        view.startAnimation(bellAnimation);
     }
 
     private void timer() {
@@ -125,6 +165,7 @@ public class ChatActivity extends AppCompatActivity {
         }
         if(needSound && !isFirst) {
             incomingMessage.start();
+            ivBell.startAnimation(bellAnimation);
         }
         // Прокрутка scroll view: формування контенту (відображення) відбувається
         // асинхронно. Якщо подати команду скролінгу прямо,
@@ -174,6 +215,7 @@ public class ChatActivity extends AppCompatActivity {
                 return;
             }
             else {
+                saveLastAuthor();
                 etAuthor.setEnabled(false);
             }
         }
@@ -247,6 +289,23 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+    private void tryRestoreAuthor() {
+        try( SQLiteDatabase db = openOrCreateDatabase("auth_db",MODE_PRIVATE,null) ) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS auth_stat(id ROWID,dtt DATETIME DEFAULT CURRENT_TIMESTAMP, author VARCHAR(64))");
+            Cursor resultSet = db.rawQuery("SELECT author FROM auth_stat ORDER BY dtt DESC",null);
+            if(resultSet.moveToFirst()) {
+                etAuthor.setText( resultSet.getString(0) );   // відлік від 0
+            }
+            resultSet.close();
+        }
+    }
+    private void saveLastAuthor() {
+        try( SQLiteDatabase db = openOrCreateDatabase("auth_db", MODE_PRIVATE,null) ) {
+            db.execSQL(
+                    "INSERT INTO auth_stat(author) VALUES(?)",
+                    new String[] { etAuthor.getText().toString() } );
+        }
+    }
     @Override
     protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
@@ -264,8 +323,9 @@ public class ChatActivity extends AppCompatActivity {
 Забезпечити перевірку на порожні повідомлення/авторство -- видавати попередження, дані не надсилати
  */
 /*
-Д.З.(хрестики або ноліки) Реалізувати анімації
-- поява нових знаків (альфа)
-- зникнення при скасуванні
-- масштаб по лінії виграшу
+Д.З. Прикласти посилання на репозиторій з підсумковим проєктом
+Доповнити його скріншотами / відеозаписами екрану
+Встановити Unity https://unity.com/download
+- Unity Hub
+- Unity Editor
  */
